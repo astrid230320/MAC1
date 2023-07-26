@@ -1,0 +1,236 @@
+/******************************************************************************/
+/*****  		         FUNCIONES COMUNES PARA TODOS LOS MODUULOS 		 ******/
+/*****								AJAX 				                ******/
+/******************************************************************************/
+function ajax_getData(dataSource,divID,script){
+	var XMLHttpRequestObject = false;
+	if (window.XMLHttpRequest) {
+		XMLHttpRequestObject = new XMLHttpRequest();
+	} else if (window.ActiveXObject) {
+		XMLHttpRequestObject = new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	if(XMLHttpRequestObject) {
+		var obj;
+		if (obj = document.getElementById(divID)){
+			obj.innerHTML = "Cargando. Espere ...";
+			XMLHttpRequestObject.open("GET", dataSource);
+			XMLHttpRequestObject.onreadystatechange = function(){
+				if (XMLHttpRequestObject.readyState == 4 && XMLHttpRequestObject.status == 200) {
+					obj.innerHTML = XMLHttpRequestObject.responseText;
+					obj.style.height = 100; // (obj.firstChild.clientHeight > 100 ? 100 : obj.firstChild.clientHeight) + 2;
+					if (script.length) eval(script);
+				}
+			}
+			XMLHttpRequestObject.send(null);
+		}
+	}
+}
+
+
+function ajax_include(file_path){
+	var j = document.createElement("script");
+	j.type = "text/javascript";
+	j.src = file_path;
+	document.body.appendChild(j);
+}
+
+/******************************************************************************/
+/*****  		          VENTANAS                                        *****/
+/******************************************************************************/
+function creaDiv(sitio){
+	if(!document.getElementById("divBuscador")){
+		var n = document.createElement("div");
+		n.id="divBuscador";
+		n.style.borderColor='#c00';
+		n.style.borderWidth='1px';
+		n.style.borderStyle='solid';
+		n.style.backgroundColor='#FCC000';
+		n.style.padding='0px';
+		n.style.color='#C00000';
+		n.style.fontFamily='Arial';
+		n.style.width='250px';
+		n.style.overflowY='auto';
+		n.style.position='absolute';
+		n.style.zIndex=100;
+		document.getElementById(sitio).appendChild(n);
+	}
+}
+
+function creaDivProducto(sitio){
+	if(!document.getElementById("divBuscador")){
+		var n = document.createElement("div");
+		n.id="divBuscador";
+		document.getElementById(sitio).appendChild(n);
+	}
+}
+
+$(function(){
+    $(document).mouseup(function (e)
+{
+    var container = $("#divBuscador");
+
+    if (!container.is(e.target) 
+        && container.has(e.target).length === 0) 
+    {
+        container.hide();
+    }
+});
+});
+
+function eliminaDiv(){
+	if(div=document.getElementById("divBuscador"))
+		div.parentNode.removeChild(div);
+}
+
+/******************************************************************************/
+/*****  		          AJAX                                            *****/
+/******************************************************************************/
+function ajax_getDataActualizarPrecio(dataSource,idvalor,precioConIva,cadena,idproducto){
+	//ACTUALIZAR PRECIO PRODUCTO
+	var precio = 0;	
+	precio = document.productoPrecio.precio.value;
+	iva = document.productoPrecio.iva.value;
+
+	if(idvalor != "0"){
+		var XMLHttpRequestObject = false;
+		if (window.XMLHttpRequest) {
+			XMLHttpRequestObject = new XMLHttpRequest();
+		} else if (window.ActiveXObject) {
+			XMLHttpRequestObject = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+
+		if(XMLHttpRequestObject) {
+			var obj;
+			var precioOpcion;
+
+			XMLHttpRequestObject.open("GET", dataSource+"?idvalor="+idvalor+"&idproducto=" + idproducto);
+			XMLHttpRequestObject.onreadystatechange = function(){
+				if (XMLHttpRequestObject.readyState == 4 &&	XMLHttpRequestObject.status == 200) {
+					var xmlDocument = XMLHttpRequestObject.responseXML;
+					xmldoc = xmlDocument.documentElement;
+					lastnamenodes = xmldoc.getElementsByTagName("precio");
+					nodoimagen = xmldoc.getElementsByTagName("imagen");
+					for (loopIndex = 0; loopIndex < lastnamenodes.length; loopIndex++) {
+						precioOpcion = imagenopcion = "";
+						if(lastnamenodes[loopIndex].firstChild)
+							precioOpcion = lastnamenodes[loopIndex].firstChild.nodeValue;
+						if(nodoimagen[loopIndex].firstChild)
+							imagenopcion = nodoimagen[loopIndex].firstChild.nodeValue;
+						precio =  parseFloat(precio) + parseFloat(precioOpcion);
+
+						if(precioConIva){
+							precio =  parseFloat(precio) + parseFloat(precio * (iva/100));
+							precio = Math.round(precio*100)/100;
+						}
+
+						if(aux = MM_findObj("celdaPrecio")){
+							aux.innerHTML =  Math.round(precio*100)/100 + cadena;
+						}
+						if(imagenopcion.length>2){ 
+                            if($("#imagenportada").length != 0)
+                                document.getElementById('imagenportada').src =  "/files/productos/productos/P/" +  imagenopcion;
+                        }
+					}
+				}
+			}
+			XMLHttpRequestObject.send(null);
+		}
+	}else{
+		if(precioConIva){
+			precio =  parseFloat(precio) +(parseFloat(precio) * (parseFloat(iva)/100));
+			precio = Math.round(precio*100)/100;
+		}
+		if(aux = MM_findObj("celdaPrecio")){
+			aux.innerHTML =  precio + cadena;
+		}
+	}
+
+}
+
+/******************************************************************************/
+/*****  		          AJAX                                            *****/
+//provincia --> provincia
+//tipo --> Tipo de buscador origen
+// 		0 = Buscador Inmuebles
+// 		1 = Buscador Inversiones
+// 		2 = Buscador Promociones
+//subtipos -->subtipos inmuebles seleccionados
+/******************************************************************************/
+function ajax_getProvincias(dataSource,pais,prefijo){
+	var XMLHttpRequestObject = false;
+	if (window.XMLHttpRequest) {
+		XMLHttpRequestObject = new XMLHttpRequest();
+	} else if (window.ActiveXObject) {
+		XMLHttpRequestObject = new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	if(XMLHttpRequestObject) {
+		var obj;
+		var nodo, poblacion, idpoblacion, xmldoc, firstnamenodes,lastnamenodes;
+
+		var campoprovincia = $("#" + prefijo + "provincia");
+		if(campoprovincia.length){
+			campoprovincia.empty();
+			XMLHttpRequestObject.open("GET", dataSource+"?pais="+ pais);
+			XMLHttpRequestObject.onreadystatechange = function(){
+				if (XMLHttpRequestObject.readyState == 4 &&	XMLHttpRequestObject.status == 200) {
+					var xmlDocument = XMLHttpRequestObject.responseXML;
+					xmldoc = xmlDocument.documentElement;
+
+					if(xmldoc){
+						firstnamenodes = xmldoc.getElementsByTagName("nombre");
+						lastnamenodes = xmldoc.getElementsByTagName("id");
+						$("<option value=''></option>").appendTo("#" + prefijo+ "provincia");
+
+						for (loopIndex = 0; loopIndex < lastnamenodes.length; loopIndex++) {
+							$("<option value='" + lastnamenodes[loopIndex].firstChild.nodeValue + "'>" + firstnamenodes[loopIndex].firstChild.nodeValue + "</option>").appendTo("#" + prefijo+ "provincia");
+						}
+					}
+				}
+			}
+			XMLHttpRequestObject.send(null);
+		}
+        if(prefijo=="envio")  ajustarGastosEnvio();
+	}
+}
+
+/******************************************************************************/
+/*****  		          FILTRO                                          *****/
+/******************************************************************************/
+var tamanoCampoDown = 0;
+
+function cargaBusqueda(campo,valor,sitio,url){
+	var parametros = (url.indexOf("?")>0 ? "&" : "?") + campo + "=" + escape(valor);
+	creaDivProducto(sitio);
+	ajax_getData(url+parametros,"divBuscador","");
+}
+
+function listadoFiltro(campo,sitio,url){
+	if(!document.getElementById || !document.createTextNode || document.getElementById("divBuscador"))
+		return;
+
+	if(obj=document.getElementById("nombre" + campo)){
+		cargaBusqueda(campo,obj.value,sitio,url);
+	}
+}
+
+function cambiaFiltro(evt,campo,sitio,url){
+    var nav4 = window.Event ? true : false;
+    var key = nav4 ? evt.which : evt.keyCode;
+
+    if(!document.getElementById || !document.createTextNode)
+        return;
+
+    if (obj=document.getElementById("nombre" + campo)){
+        if (tamanoCampoDown == obj.value.length)
+            return;
+
+        if (obj.value.length>2)
+            cargaBusqueda(campo,obj.value,sitio,url);
+        else
+            eliminaDiv();
+
+        if(idCampo=document.getElementById("id" + campo))
+            idCampo.value = "";
+    }
+}
